@@ -1,0 +1,35 @@
+# Example ESPHome device config for a device migrated from Tasmota.
+#
+# The key difference from a normal ESPHome config is the custom partition table
+# that matches the layout written by the installer. This ensures the build-time
+# partition sizes match the flash layout.
+#
+# Upload to the installer:
+#   esphome upload device.yaml --device <device-ip>
+
+esphome:
+  name: my-device
+
+esp32:
+  board: esp32dev  # Change to match your device
+  framework:
+    type: esp-idf
+  partitions: partitions/tasmota_migrate_4MB.csv
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  ap:
+    ssid: "My-Device-Fallback"
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+
+# Add your sensors, switches, lights, etc. below:

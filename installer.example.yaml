@@ -1,0 +1,45 @@
+# Tasmota-to-ESPHome Migration Installer
+#
+# This is the minimal ESPHome firmware that gets uploaded to a Tasmota device
+# via its /u2 HTTP endpoint. On first boot it repartitions the flash for
+# ESPHome's dual-OTA layout, reboots, then waits for the real firmware
+# via `esphome upload`.
+#
+# Build:
+#   esphome compile installer.yaml
+#
+# Upload to Tasmota:
+#   FIRMWARE=.esphome/build/tasmota-migrator/.pioenvs/tasmota-migrator/firmware.bin
+#   curl -F "file=@${FIRMWARE};filename=firmware.bin" \
+#        "http://<tasmota-ip>/u2?fsz=$(stat -c%s ${FIRMWARE})"
+#
+# After ~15 seconds (two automatic reboots), upload the real firmware:
+#   esphome upload device.yaml --device <device-ip>
+
+esphome:
+  name: tasmota-migrator
+
+esp32:
+  board: esp32dev  # Change to match your device
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  ap:
+    ssid: "Tasmota-Migrate"
+    password: "migrate123"
+
+logger:
+
+ota:
+  - platform: esphome
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+tasmota_migrate:
