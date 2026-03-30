@@ -1,8 +1,7 @@
 # Example ESPHome device config for a device migrated from Tasmota.
 #
-# The key difference from a normal ESPHome config is the custom partition table
-# that matches the layout written by the installer. This ensures the build-time
-# partition sizes match the flash layout.
+# After migration, the device has a stock ESPHome partition layout.
+# No custom partition table is needed -- this is a completely standard config.
 #
 # Upload to the installer:
 #   esphome upload device.yaml --device <device-ip>
@@ -14,7 +13,6 @@ esp32:
   board: esp32dev  # Change to match your device
   framework:
     type: esp-idf
-  partitions: partitions/tasmota_migrate_4MB.csv
 
 wifi:
   ssid: !secret wifi_ssid

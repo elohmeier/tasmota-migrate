@@ -29,11 +29,17 @@ class TasmotaMigrateComponent : public Component {
   /// Check if current partition table has a Tasmota safeboot factory partition.
   bool is_tasmota_safeboot_layout_();
 
-  /// Write the new ESPHome-compatible partition table to flash at 0x8000.
-  bool write_partition_table_();
+  /// Copy the running firmware from src to dst (flash-to-flash, sector by sector).
+  bool copy_firmware_(uint32_t dst, uint32_t src, uint32_t size);
 
-  /// Write otadata at 0xE000 to select ota_0 (app0) for next boot.
-  bool write_otadata_();
+  /// Get the size of the firmware image at the given flash address by parsing ESP-IDF image headers.
+  int32_t get_image_size_(uint32_t addr);
+
+  /// Write the stock ESPHome partition table to flash at 0x8000.
+  bool write_partition_table_(uint32_t app_size);
+
+  /// Write otadata at 0x9000 to select ota_0 (app0) for next boot.
+  bool write_otadata_(uint32_t otadata_offset);
 
   /// Build a single partition entry.
   static PartitionEntry make_entry_(uint32_t offset, uint32_t size, uint8_t type, uint8_t subtype, const char *label);
