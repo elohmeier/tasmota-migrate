@@ -90,52 +90,84 @@ Done. The device is now running ESPHome with full dual-OTA support.
 
 The migration happens in four steps across three reboots:
 
-```
-Tasmota running
-       |
-       | curl upload installer.bin via /u2
-       v
-Installer boots (1st boot)
-  - Detects Tasmota safeboot partition layout
-  - Rewrites partition table for ESPHome dual-OTA
-  - Writes OTA boot selector
-  - Reboots automatically
-       |
-       v
-Installer boots (2nd boot)
-  - No safeboot layout found -> migration done
-  - ESPHome OTA listener active on port 3232
-       |
-       | esphome upload device.yaml
-       v
-Real ESPHome firmware running
-  - Future OTA updates work normally
+```mermaid
+flowchart TD
+    A["<b>Tasmota running</b>"] -->|"curl upload installer.bin via /u2"| B
+
+    B["<b>Installer boots (1st boot)</b>
+    Detects Tasmota safeboot layout
+    Rewrites partition table for ESPHome dual-OTA
+    Writes OTA boot selector
+    Reboots automatically"]
+
+    B --> C
+
+    C["<b>Installer boots (2nd boot)</b>
+    No safeboot layout found — migration done
+    ESPHome OTA listener active on port 3232"]
+
+    C -->|"esphome upload device.yaml"| D
+
+    D["<b>Real ESPHome firmware running</b>
+    Future OTA updates work normally"]
+
+    style A fill:#e44,color:#fff
+    style B fill:#f90,color:#fff
+    style C fill:#f90,color:#fff
+    style D fill:#2a2,color:#fff
 ```
 
 The key insight: Tasmota's `app0` partition sits at flash address `0xE0000`. The new partition table keeps `app0` at the same address, so the installer remains bootable after the partition table rewrite. The real ESPHome firmware is then written to `app1` via standard ESPHome OTA, and future updates alternate between both partitions normally.
 
 ### Partition Layout
 
-**Before** (Tasmota safeboot):
+The flash is repartitioned in-place. `app0` stays at the same physical address so the installer remains bootable across the rewrite:
 
-| Offset | Size | Name | Purpose |
-|--------|------|------|---------|
-| 0x9000 | 20KB | nvs | Settings |
-| 0xE000 | 8KB | otadata | Boot selector |
-| 0x10000 | 832KB | safeboot | Recovery firmware (factory) |
-| 0xE0000 | 1856KB | app0 | Main firmware (ota_0) |
-| 0x2B0000 | 1344KB | spiffs | Filesystem |
+```mermaid
+block-beta
+  columns 6
 
-**After** (ESPHome, 4MB flash):
+  block:before:6
+    columns 6
+    bh["<b>Before</b> (Tasmota safeboot)"]:6
+    bnvs["nvs\n20KB"]
+    bota["otadata\n8KB"]
+    bsafe["safeboot\n832KB"]:2
+    bapp0["app0 (ota_0)\n1856KB"]:2
+    bspiffs["spiffs\n1344KB"]:2
+    bpad1[" "]:4
+  end
 
-| Offset | Size | Name | Purpose |
-|--------|------|------|---------|
-| 0x9000 | 20KB | nvs | Settings |
-| 0xE000 | 8KB | otadata | Boot selector |
-| 0x10000 | 4KB | phy_init | PHY calibration |
-| 0x11000 | 828KB | spiffs | Filesystem |
-| 0xE0000 | 1600KB | app0 | ESPHome OTA slot 0 |
-| 0x270000 | 1600KB | app1 | ESPHome OTA slot 1 |
+  space:6
+
+  block:after:6
+    columns 6
+    ah["<b>After</b> (ESPHome, 4MB)"]:6
+    anvs["nvs\n20KB"]
+    aota["otadata\n8KB"]
+    aphy["phy\n4KB"]
+    aspiffs["spiffs\n828KB"]
+    aapp0["app0 (ota_0)\n1600KB"]:2
+    aapp1["app1 (ota_1)\n1600KB"]:2
+    apad1[" "]:2
+  end
+
+  style bsafe fill:#e44,color:#fff
+  style bapp0 fill:#f90,color:#fff
+  style bspiffs fill:#69c,color:#fff
+  style bnvs fill:#888,color:#fff
+  style bota fill:#888,color:#fff
+
+  style aapp0 fill:#2a2,color:#fff
+  style aapp1 fill:#2a2,color:#fff
+  style aspiffs fill:#69c,color:#fff
+  style anvs fill:#888,color:#fff
+  style aota fill:#888,color:#fff
+  style aphy fill:#888,color:#fff
+
+  style bpad1 fill:none,stroke:none
+  style apad1 fill:none,stroke:none
+```
 
 App partition sizes scale automatically with flash size:
 
